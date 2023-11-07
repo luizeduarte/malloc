@@ -58,7 +58,7 @@ alocaMem:
 
     attNo:
 	movq $1, (%rax)		# indica que o bloco está ocupado
-	movq %rdi, %rbx	# carrega num_bytes em %rbx
+	movq %rdi, %rbx		# carrega num_bytes em %rbx
 	movq %rbx, 8(%rax)	# salva num_bytes no bloco
 	movq -8(%rbp), %rax	# retorna o endereço inicial do bloco
 	addq $8, %rsp		# desaloca novo_end da pilha
@@ -115,7 +115,6 @@ firstFit:
 	cmpq %rbx, -8(%rax)		# compara tamanho do bloco livre com o tamanho do bloco a ser alocado
 	# jge split			# se o bloco livre for maior, split
 	# se nao, ver o que faz
-
 
     retFirstFit:
 	popq %rbp
