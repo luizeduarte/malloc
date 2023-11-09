@@ -120,6 +120,8 @@ firstFit:
 	popq %rbp
 	ret
 
+
+
 .globl finalizaAlocador
 # void finalizaAlocador() executa syscall brk para restaurar o valor original da heap contido em topoInicialHeap
 finalizaAlocador:
@@ -148,3 +150,60 @@ liberaMem:
 	ret
 
 
+.globl imprimeMapa
+imprimeMapa:
+	pushq %rbp
+	movq %rsp, %rbp
+
+	subq $8, %rsp				# aloca espaço para variável local
+	movq topoInicialHeap, %r9		# armazena valor do inicio da heap
+	movq topoFinalHeap, %r10		# armazena valor do fim da heap
+	movq %r9, -8(%rbp)			# salva o inicio da heap na variavel local
+
+    veriricaFimHeap:
+	cmpq -8(%rbp), %r10		# verifica se o ponteiro (variável local) chegou ao fim da heap
+	jge fimHeap
+	movq $STR_GERENCIAL, %rsi 	# início do buffer 
+	movq $16, %rdx			# tam do buffer
+	movq $1, %rax			# código do comando syscall write
+	movq $1, %rdi			# stdout
+	syscall				# syscall write
+
+	movq -8(%rbp), %rbx		# carrega ponteiro em rbx
+	movq 8(%rbx), %rcx		# carrega tamanho do bloco em rcx
+	movq (%rbx), %rbx		# pega o bit de ocupacao do bloco
+	movq $0, %r8			# inicializa contador de bytes impressos em r8
+
+    verificaFimBloco:
+	cmpq %rcx, %r8			# verifica se o contador de bytes impressos é igual ao tamanho do bloco
+	jge fimBloco
+	movq $1, %rdi			# argumentos para o syscall write
+	movq $1, %rdx
+	movq $1, %rax
+
+	cmpq $0, %rbx			# se 0 imprime a string BYTE_LIVRE, se 1 imprime BYTE_OCUPADO
+	jne imprimeOcupado
+	movq $BYTE_LIVRE, %rsi		# imprime BYTE_LIVRE "-"
+	jmp byteImpresso		
+    imprimeOcupado:
+	movq $BYTE_OCUPADO, %rsi	# imprime BYTE_OCUPADO "+"
+
+    byteImpresso:
+	syscall
+	addq $1, %r8			# atualiza contador de bytes impressos
+	jmp verificaFimHeap		# volta a verififcar se ainda restam blocos para imprimir
+
+    fimBloco:
+	addq 16, -8(%rbp)
+	addq %rcx, -8(%rbp)		# atualiza ponteiro para o próximo bloco
+	jmp while_bloco
+
+    fimHeap:
+	movq $1, %rdx 			# argumentos para o syscall write 
+	movq $1, %rax
+	movq $1, %rdi
+	syscall
+
+	addq $8, %rsp
+	popq %rbp
+	ret
