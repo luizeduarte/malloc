@@ -10,6 +10,5 @@ int main(){
 	string2 = alocaMem(5);
 	string2 = "World";
 
-	//imprime a memoria
-	//imprMapa();
+	
 }

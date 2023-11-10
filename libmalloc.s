@@ -1,17 +1,12 @@
-.section .text
+#ifndef MALLOC_H_
+#define MALLOC_H_
 
-global iniciaAlocador
-global liberaMem
-global alocaMem
-global imprimeMem
+extern long int iniciaAlocador();
+extern void *alocaMem(long int num_bytes);
+extern long int finalizaAlocador();
+extern void liberaMem(void *bloco);
 
-%macro FUNCTION_PROTOTYPE 1
-    global %1
-    %1:
-    ret
-%endmacro
+extern long int TopoInicialHeap;
+extern long int TopoFinalHeap;
 
-FUNCTION_PROTOTYPE iniciaAlocador
-FUNCTION_PROTOTYPE liberaMem
-FUNCTION_PROTOTYPE alocaMem
-FUNCTION_PROTOTYPE imprimeMem
+#endif

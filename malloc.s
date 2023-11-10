@@ -107,14 +107,14 @@ firstFit:
 	jmp retFirstFit
 
     blocoLivre:				# TODO: talvez trocar a ordem melhore a questão do %rax ser mudado antes do cmpq
-	movq %rdi, %rbx		# carrega tamanho do bloco a ser alocado (passado por parametro) em %rbx
+	movq %rdi, %rbx			# carrega tamanho do bloco a ser alocado (passado por parametro) em %rbx
 	addq $16, %rax			# rax recebe possível novo endereço
 	cmpq %rbx, -8(%rax)		# verifica se o tamanho é exatamente igual
 	je retFirstFit
-	addq $16, %rbx			# se o bloco livre for maior que o novo bloco + 16, split
+	addq $16, %rbx
 	cmpq %rbx, -8(%rax)		# compara tamanho do bloco livre com o tamanho do bloco a ser alocado
-	# jge split			# se o bloco livre for maior, split
-	# se nao, ver o que faz
+	jge split				# se o bloco livre for maior que o novo bloco + 16, split
+	movq $1, -16(%rax)		# indica que o bloco está ocupado
 
     retFirstFit:
 	popq %rbp
