@@ -1,6 +1,9 @@
 .section .data
 	topoInicialHeap: .quad 0
 	topoFinalHeap: .quad 0
+	STR_GERENCIAL: .string "################"
+	BYTE_LIVRE: .string "-"
+	BYTE_OCUPADO: .string "+"
 	
 .section .text
 
@@ -45,22 +48,20 @@ alocaMem:
 	jne attNo
 
     addHeap:			# adiciona um novo bloco
-	movq %rdi, %rcx
-	addq $16, %rcx
 	pushq %rdi
-	movq $12, %rax
-	movq %rcx, %rdi
+	addq $16, %rdi		# adiciona 16 bytes ao tamanho do bloco
+	addq topoFinalHeap, %rdi
+	movq $12, %rax		# codigo da syscall brk
 	syscall
 	popq %rdi
-	movq %rax, topoFinalHeap	# atuzaliza topoFinalHeap
-	subq %rax, %rcx
-	movq %rax, -8(%rbp)		# salva o novo endereço na variável local
+	movq topoFinalHeap, %rax
+	addq $16, topoFinalHeap		# atualizando topoFinalHeap
+	addq %rdi, topoFinalHeap
 
     attNo:
 	movq $1, (%rax)		# indica que o bloco está ocupado
-	movq %rdi, %rbx		# carrega num_bytes em %rbx
-	movq %rbx, 8(%rax)	# salva num_bytes no bloco
-	movq -8(%rbp), %rax	# retorna o endereço inicial do bloco
+	movq %rdi, 8(%rax)	# salva num_bytes no bloco
+	addq $16, %rax		# retorna ponteiro para o conteúdo
 	addq $8, %rsp		# desaloca novo_end da pilha
 	popq %rbp
 	ret
@@ -75,12 +76,11 @@ firstFit:
 	subq $8, %rsp			# aloca variavel que aponta para o bloco sendo analisado
 	movq topoInicialHeap, %rax	# carrega inicio da heap em %rax
 	movq %rax, -8(%rbp)		# salva o começo da heap na variavel local	
-	movq topoFinalHeap, %rbx	# carrega fim da heap em %rbx
 
     # iniciando loop do while (enquanto não encontra um espaço adequado)
     verificaFim:			# if que verifica se não chegou no fim da heap
-	cmpq %rbx, %rax
-	jg semBlocos			# se topoFinalHeap < topoInicialHeap, não há blocos alocados mais
+	cmpq topoFinalHeap, %rax
+	jge semBlocos			# se topoFinalHeap <= topoInicialHeap, não há blocos alocados mais
 					# se não, verifica se o bloco atual está livre
 
     verificaBloco:			# if que verifica se o bloco está livre
@@ -90,8 +90,7 @@ firstFit:
 
     verificaTamanho:			# if para verificar se o bloco é grande o suficiente
 	movq 8(%rax), %rbx		# carrega tamanho do bloco sendo analisado em %rbx
-	movq %rdi, %rcx		# carrega tamanho do bloco a ser alocado (passado por parametro) em %rcx
-	cmpq %rcx, %rbx			# compara tamanho do bloco sendo analisado com o tamanho do bloco a ser alocado
+	cmpq %rdi, %rbx			# compara tamanho do bloco sendo analisado com o tamanho do bloco a ser alocado
 	jge blocoLivre			# se o bloco a ser alocado for maior, passa para o proximo bloco
 
     proxBloco:				# pula para o proximo bloco
@@ -107,16 +106,22 @@ firstFit:
 	jmp retFirstFit
 
     blocoLivre:				# TODO: talvez trocar a ordem melhore a questão do %rax ser mudado antes do cmpq
-	movq %rdi, %rbx			# carrega tamanho do bloco a ser alocado (passado por parametro) em %rbx
-	addq $16, %rax			# rax recebe possível novo endereço
-	cmpq %rbx, -8(%rax)		# verifica se o tamanho é exatamente igual
+	cmpq %rdi, 8(%rax)		# verifica se o tamanho é exatamente igual
 	je retFirstFit
+	movq %rdi, %rbx
 	addq $16, %rbx
-	cmpq %rbx, -8(%rax)		# compara tamanho do bloco livre com o tamanho do bloco a ser alocado
-	jge split				# se o bloco livre for maior que o novo bloco + 16, split
-	movq $1, -16(%rax)		# indica que o bloco está ocupado
+	cmpq %rbx, 8(%rax)
+	jle retFirstFit			# se o bloco livre for maior que o novo bloco + 16, split
+
+    split:
+	movq %rax, %rcx
+	addq %rbx, %rcx
+	movq $0, (%rcx)
+	subq 8(%rax), %rbx
+	movq %rbx, 8(%rcx)
 
     retFirstFit:
+	addq $8, %rsp			# desaloca variavel que aponta para o bloco sendo analisado
 	popq %rbp
 	ret
 
@@ -143,25 +148,59 @@ finalizaAlocador:
 liberaMem:
 	pushq %rbp
 	movq %rsp, %rbp
-	movq %rdi, %rax	# carrega bloco em %rax
-	subq $16, %rax		# volta para o cabeçalho do bloco
-	movq $0, (%rax)		# indica que o bloco está livre
+	subq $16, %rdi
+	movq $0, (%rdi)		# indica que o bloco está livre
+
+	# percorre a heap para fazer a fusão de nodos
+    verificaBlocoPosterior:
+	movq 8(%rdi), %rcx	# carrega tamanho do bloco a ser liberado em %rcx
+	addq $16, %rcx
+	movq %rcx, %rbx
+	addq %rdi, %rbx		# %rbx recebe endereço do bloco posterior
+	cmpq topoFinalHeap, %rbx	# verifica se o bloco a ser desalocado é o último 
+	je verificaPrimeiroBloco
+	cmpq $0, (%rbx)		# verifica se o bloco posterior está livre
+	jne verificaPrimeiroBloco
+	addq 8(%rbx), %rcx 	# rcx recebe o tamanho do bloco fusionado
+	movq %rcx, 8(%rdi) 	# atualiza tamanho do bloco na heap
+
+    verificaPrimeiroBloco:
+	movq topoInicialHeap, %rax
+	cmpq %rdi, %rax
+	je fimLiberaMem		# se o que deseja desalocar é o primeiro, não existe bloco anterior
+    encontraBlocoAnterior:
+	movq %rax, %rbx		# guarda endereço atual em %rbx
+	movq 8(%rax), %rax	# carrega tamanho do bloco sendo analisado em  %rax
+	addq $16, %rax
+	addq %rbx, %rax
+	cmpq %rdi, %rax		# verifica se o próximo bloco é o bloco a ser liberado
+	je blocoAnteriorEncontrado
+	jmp encontraBlocoAnterior
+
+    blocoAnteriorEncontrado:
+	movq (%rbx), %rcx	# carrega informação gerencial do bloco anterior em %rcx
+	cmpq $0, %rcx		# verifica se o bloco anterior está livre
+	jne fimLiberaMem	# se não estiver livre, não há fusão de nodos
+	movq 8(%rbx), %rcx	# carrega tamanho do bloco anterior em %rcx
+	addq $16, %rcx
+	addq 8(%rdi), %rcx	# soma tamanho do bloco a ser liberado
+	movq %rcx, 8(%rbx)	# salva novo tamanho no bloco anterior
+
+    fimLiberaMem:
 	popq %rbp
 	ret
-
-
+	
 .globl imprimeMapa
 imprimeMapa:
 	pushq %rbp
 	movq %rsp, %rbp
-
 	subq $8, %rsp				# aloca espaço para variável local
-	movq topoInicialHeap, %r9		# armazena valor do inicio da heap
-	movq topoFinalHeap, %r10		# armazena valor do fim da heap
-	movq %r9, -8(%rbp)			# salva o inicio da heap na variavel local
+	movq topoInicialHeap, %rax		# carrega inicio da heap em %rax
+	movq topoFinalHeap, %r13		# carrega fim da heap em %rbx
+	movq %rax, -8(%rbp)		# salva o inicio da heap na variavel local
 
-    veriricaFimHeap:
-	cmpq -8(%rbp), %r10		# verifica se o ponteiro (variável local) chegou ao fim da heap
+    verificaFimHeap:
+	cmpq %r13, -8(%rbp)		# verifica se o ponteiro (variável local) chegou ao fim da heap
 	jge fimHeap
 	movq $STR_GERENCIAL, %rsi 	# início do buffer 
 	movq $16, %rdx			# tam do buffer
@@ -170,12 +209,12 @@ imprimeMapa:
 	syscall				# syscall write
 
 	movq -8(%rbp), %rbx		# carrega ponteiro em rbx
-	movq 8(%rbx), %rcx		# carrega tamanho do bloco em rcx
+	movq $0, %r12			# inicializa contador de bytes impressos em r8
+	movq 8(%rbx), %r14		# carrega tamanho do bloco em rcx
 	movq (%rbx), %rbx		# pega o bit de ocupacao do bloco
-	movq $0, %r8			# inicializa contador de bytes impressos em r8
 
     verificaFimBloco:
-	cmpq %rcx, %r8			# verifica se o contador de bytes impressos é igual ao tamanho do bloco
+	cmpq %r14, %r12			# verifica se o contador de bytes impressos é igual ao tamanho do bloco
 	jge fimBloco
 	movq $1, %rdi			# argumentos para o syscall write
 	movq $1, %rdx
@@ -184,26 +223,22 @@ imprimeMapa:
 	cmpq $0, %rbx			# se 0 imprime a string BYTE_LIVRE, se 1 imprime BYTE_OCUPADO
 	jne imprimeOcupado
 	movq $BYTE_LIVRE, %rsi		# imprime BYTE_LIVRE "-"
-	jmp byteImpresso		
+	jmp byteImpresso
+
     imprimeOcupado:
 	movq $BYTE_OCUPADO, %rsi	# imprime BYTE_OCUPADO "+"
 
     byteImpresso:
 	syscall
-	addq $1, %r8			# atualiza contador de bytes impressos
+	addq $1, %r12			# atualiza contador de bytes impressos
+	jmp verificaFimBloco		# volta a verififcar se ainda restam blocos para imprimir
+
+    fimBloco:	
+	addq $16, %r14
+	addq %r14, -8(%rbp)		# salva o novo ponteiro na variável local
 	jmp verificaFimHeap		# volta a verififcar se ainda restam blocos para imprimir
 
-    fimBloco:
-	addq 16, -8(%rbp)
-	addq %rcx, -8(%rbp)		# atualiza ponteiro para o próximo bloco
-	jmp while_bloco
-
     fimHeap:
-	movq $1, %rdx 			# argumentos para o syscall write 
-	movq $1, %rax
-	movq $1, %rdi
-	syscall
-
 	addq $8, %rsp
 	popq %rbp
 	ret

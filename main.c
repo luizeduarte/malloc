@@ -1,14 +1,21 @@
-#include "libmalloc.s"
+#include <stdio.h>
+#include <unistd.h>
+#include "libmalloc.h"
 
-int main(){
-	char *string1, *string2;
+int main (long int argc, char** argv) {
+	void *a, *b;
 
-	//aloca memoria de 5 bytes para a string
-	string1 = alocaMem(5);
-	string1 = "Hello";
+	iniciaAlocador();               // Impressão esperada
+	imprimeMapa();                  // <vazio>
 
-	string2 = alocaMem(5);
-	string2 = "World";
-
-	
+	a = (void *)alocaMem(10);
+	imprimeMapa();                  // ################**********
+	b = (void *)alocaMem(4);
+	imprimeMapa();                  // ################**********##############****
+	liberaMem(a);
+	imprimeMapa();                  // ################----------##############****
+	liberaMem(b);                   // ################----------------------------
+	imprimeMapa();                  // ou
+					// <vazio>
+	finalizaAlocador();
 }

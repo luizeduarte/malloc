@@ -1,37 +1,21 @@
-# Compiler and linker options
-CC = gcc
-AS = as
-LD = ld
+malloc: malloc.o main.o
+	ld malloc.o main.o -o malloc -dynamic-linker /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /usr/lib/x86_64-linux-gnu/crt1.o /usr/lib/x86_64-linux-gnu/crti.o /usr/lib/x86_64-linux-gnu/crtn.o -lc
 
-# Source files
-AS_SRC = malloc.s
-C_SRC = main.c
+debug: malloc.o main.co
+	ld malloc.o main.c o -o malloc -dynamic-linker /lib/x86_64-linux-gnu/ld-linux-x86-64.so.2 /usr/lib/x86_64-linux-gnu/crt1.o /usr/lib/x86_64-linux-gnu/crti.o /usr/lib/x86_64-linux-gnu/crtn.o -lc
 
-# Object files
-AS_OBJ = $(AS_SRC:.s=.o)
-C_OBJ = $(C_SRC:.c=.o)
+malloc.o: malloc.s
+	as malloc.s -o malloc.o -g
 
-# Executable name
-TARGET = my_program
+main.co: main.c
+	gcc -S main.c -o main.cs
+	as main.cs -o main.co -g
 
-# Default target
-all: $(TARGET)
+main.o: main.c
+	gcc -c main.c -o main.o -g
 
-# Compile assembly source file to object file
-$(AS_OBJ): $(AS_SRC)
-	$(AS) -o $@ $<
-
-# Compile C source file to object file
-$(C_OBJ): $(C_SRC)
-	$(CC) -c -o $@ $<
-
-# Link object files to create the executable
-$(TARGET): $(AS_OBJ) $(C_OBJ)
-	$(LD) -o $@ $^
-
-# Clean up object files and the executable
 clean:
-	rm -f $(AS_OBJ) $(C_OBJ) $(TARGET)
+	rm -f *.o *.cs *.co
 
-.PHONY: all clean
-
+purge: clean
+	rm -f malloc
