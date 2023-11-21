@@ -258,6 +258,11 @@ imprimeMapa:
 	movq $1, %rax
 	movq $NOVA_LINHA, %rsi		# fima da impressão. pula para a próxima linha
 	syscall
+	movq $1, %rdi			# argumentos para o syscall write
+	movq $1, %rdx
+	movq $1, %rax
+	movq $NOVA_LINHA, %rsi		# fima da impressão. pula para a próxima linha
+	syscall
 
 	addq $8, %rsp
 	popq %rbp
