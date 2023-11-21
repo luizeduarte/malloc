@@ -82,15 +82,15 @@ firstFit:
     verificaFim:			# if que verifica se não chegou no fim da heap
 	cmpq topoFinalHeap, %rax
 	jge semBlocos			# se topoFinalHeap <= topoInicialHeap, não há blocos alocados mais
-					# se não, verifica se o bloco atual está livre
+						# se não, verifica se o bloco atual está livre
 
-    verificaBloco:			# if que verifica se o bloco está livre
+    # verifica se o bloco está livre
 	cmpq $0, (%rax)
 	jne proxBloco			# se não está livre, passa para o proximo bloco, se não, verifica o tamanho
 
-    verificaTamanho:			# if para verificar se o bloco é grande o suficiente
+    # verifica se o bloco é grande o suficiente
 	cmpq %rdi, 8(%rax)			# compara tamanho do bloco sendo analisado com o tamanho do bloco a ser alocado
-	jge blocoLivre			# se o bloco a ser alocado for maior, passa para o proximo bloco
+	jge verificaSplit			# se o bloco possui tamanho suficiente, verifica se é necessário o split
 
     proxBloco:				# pula para o proximo bloco
 	movq 8(%rax), %rbx		# carrega tamanho do bloco sendo analisado em %rbx
@@ -104,7 +104,7 @@ firstFit:
 	movq $0, %rax
 	jmp retFirstFit
 
-    blocoLivre:				# TODO: talvez trocar a ordem melhore a questão do %rax ser mudado antes do cmpq
+    verificaSplit:
 	cmpq %rdi, 8(%rax)		# verifica se o tamanho é exatamente igual
 	je retFirstFit
 	movq %rdi, %rbx
@@ -112,7 +112,7 @@ firstFit:
 	cmpq %rbx, 8(%rax)
 	jle retFirstFit			# se o bloco livre for maior que o novo bloco + 16, split
 
-    split:
+    # split
 	movq %rax, %rcx			# novo ponteiro em %rcx
 	addq %rbx, %rcx			# %rcx aponta para o bloco sendo criado na divisão
 	movq $0, (%rcx)			# declara novo bloco como livre
@@ -161,8 +161,8 @@ liberaMem:
 
 	subq $16, %rdi		# volta o ponteiro para a parte gerencial
 	movq $0, (%rdi)		# indica que o bloco está livre
-	# percorre a heap para fazer a fusão de nodos
-    verificaBlocoPosterior:
+
+    # verifica bloco posterior
 	movq 8(%rdi), %rcx	# carrega tamanho do bloco a ser liberado em %rcx
 	addq $16, %rcx
 	movq %rcx, %rbx
@@ -253,7 +253,7 @@ imprimeMapa:
 	jmp verificaFimHeap		# volta a verififcar se ainda restam blocos para imprimir
 
     fimHeap:
-    	movq $1, %rdi			# argumentos para o syscall write
+    movq $1, %rdi			# argumentos para o syscall write
 	movq $1, %rdx
 	movq $1, %rax
 	movq $NOVA_LINHA, %rsi		# fima da impressão. pula para a próxima linha
