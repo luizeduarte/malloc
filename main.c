@@ -1,46 +1,49 @@
 #include <stdio.h>
-#include <unistd.h>
 #include "libmalloc.h"
 
 int main (long int argc, char** argv) {
-	void *a, *b, *c, *d, *e, *f;
+  void *a,*b,*c,*d,*e;
 
-	iniciaAlocador();               // Impressão esperada
-	imprimeMapa();                  // <vazio>
+  iniciaAlocador(); 
+  imprimeMapa();
+  // 0) estado inicial
 
-	a = (void *)alocaMem(10);
-	imprimeMapa();                  // ################**********
-	b = (void *)alocaMem(4);
-	imprimeMapa();
-	c = (void *)alocaMem(15);
-	imprimeMapa();
-	d = (void *)alocaMem(26);
-	imprimeMapa();
-	e = (void *)alocaMem(20);
-	imprimeMapa();
-	f = (void *)alocaMem(10);
-	imprimeMapa();
+  a=(void *) alocaMem(100);
+  imprimeMapa();
+  b=(void *) alocaMem(130);
+  imprimeMapa();
+  c=(void *) alocaMem(120);
+  imprimeMapa();
+  d=(void *) alocaMem(110);
+  imprimeMapa();
+  // 1) Espero ver quatro segmentos ocupados
 
-	imprimeMapa();                  // ################**********##############****
-	liberaMem(a);
-	imprimeMapa();                  // ################----------##############****
-	// liberaMem(b);                   // ################----------------------------
-	// imprimeMapa();                  // ou
-					// <vazio>
+  liberaMem(b);
+  imprimeMapa(); 
+  liberaMem(d);
+  imprimeMapa(); 
+  // 2) Espero ver quatro segmentos alternando
+  //    ocupados e livres
 
-	liberaMem(f);
-	imprimeMapa();
-	liberaMem(d);
-	imprimeMapa();
-	liberaMem(e);
-	imprimeMapa();
-	liberaMem(b);
-	imprimeMapa();
-	b = (void *)alocaMem(4);
-	imprimeMapa();
-	e = (void *)alocaMem(30);
-	imprimeMapa();
+  b=(void *) alocaMem(50);
+  imprimeMapa();
+  d=(void *) alocaMem(90);
+  imprimeMapa();
+  e=(void *) alocaMem(40);
+  imprimeMapa();
+  // 3) Deduzam
+	
+  liberaMem(c);
+  imprimeMapa(); 
+  liberaMem(a);
+  imprimeMapa();
+  liberaMem(b);
+  imprimeMapa();
+  liberaMem(d);
+  imprimeMapa();
+  liberaMem(e);
+  imprimeMapa();
+   // 4) volta ao estado inicial
 
-
-	finalizaAlocador();
+  finalizaAlocador();
 }
