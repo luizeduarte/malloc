@@ -1,0 +1,33 @@
+
+1. inicializaAlocador
+            Para o controle de início e fim da heap são utilizadas as variáveis topoInicioHeap 
+        e topoFimHeap, respectivamente. Na seção .data elas são declaradas com valor zero, 
+        quando a função é chamada, são atualizadas para o valor atual da BRK. 
+
+2. alocaMem
+            A função recebe como parâmetro, através do registrador %rdi, o número de bytes a 
+        serem alocados e possui como variável local o endereço do espaço alocado à ser retornado. 
+            É chamado o procedimento firstFit, o qual percorre a heap do começo, verificando 
+        quais blocos estão livres e se seu tamanho é o suficiente, realizando o split se 
+        necessário. Ele retorna a parte gerencial do bloco encontrado, ou zero caso não encontre 
+        nenhum bloco.
+	    Ou então, é possível utilizar a versão do worstFit, que percorre a heap até o fim, 
+	verificando qual é o maior bloco livre, realizando o split se necessário.
+            Retornando para a função alocaMem, ela verifica se foi encontrado algum bloco de 
+        tamanho adequado, se não, ela atualiza o BRK. 
+
+3. finalizaAlocador
+            A função retorna os valores das variáveis globais topoInicialHeap e topoFinalHeap 
+        para zero e retorna a brk para o valor do início da heap. 
+
+4. liberaMem
+            A função realiza a verificação se o endereço passado como parâmetro é um endereço 
+        válido na heap. Se sim, ela verifica se é possível realizar a fusão com o bloco da frente,
+        e, em seguida, percorre até o bloco anterior ao que deseja liberar, realizando a fusão se 
+        possível. 
+    
+5. imprimeMapa
+            A função é composta de dois loops, para os blocos e para os bytes em cada um, imprimindo
+        16 bytes da parte gerencial e, então, os bytes do bloco. Sendo representado por “+” blocos 
+        ocupados e “-“ blocos livres. 
+            A impressão dos blocos é separada por uma quebra de linha. 
